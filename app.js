@@ -1,7 +1,5 @@
 const { App } = require('@slack/bolt');
 require("dotenv").config()
-let currentThread = ''
-let currentMessage = {}
 
 // Initializes your app with your bot token and signing secret
 const app = new App({
@@ -15,30 +13,29 @@ app.event('message', async ({ message, client }) => {
     // say() sends a message to the channel where the event was triggered
     try {
         // Call chat.scheduleMessage with the built-in client
-        if (message.thread_ts){
-            
-        }else {
-            const result = await client.chat.postEphemeral({
+        if (!message.thread_ts && message.user !== 'U02LS6X1XA4' && message.channel !== 'C02KP1PR0UX' ){
+            const result = await client.chat.postMessage({
                 channel: message.channel,
                 blocks: [
                 {
                     "type": "section",
                     "text": {
-                    "type": "mrkdwn",
-                    "text": `Hey there <@${message.user}>! Would you like to submit this question to the queue?`
+                        "type": "mrkdwn",
+                        "text": `Hey there <@${message.user}>! Would you like to submit this question to the queue?`
                     },
                     "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Yes, please submit"
-                    },
-                    "action_id": "button_click"
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Yes, please submit"
+                        },
+                        "action_id": "button_click"
                     }
                 }
                 ],
-                text: `Hey there <@${message.user}>! Do you have a question about JS/React?`,
-                user: message.user
+                text: `Hey there <@${message.user}>! Would you like to submit this question to the queue?`,
+                user: message.user,
+                thread_ts: message.ts
             
             });
         }
@@ -46,19 +43,32 @@ app.event('message', async ({ message, client }) => {
     } catch (error) {
         console.error(error);
     }
-    currentThread = message.ts
-    currentMessage = message
 });
 
 app.action('button_click', async ({ body, ack, say, client }) => {
 // Acknowledge the action
     await ack();
-    console.log(body)
-    await say({ text: `Thanks <@${body.user.id}>, your question has been submitted to the instructors
-                    
-Try sending some code snippets using \`\`\` to give us a closer look at your problem, if applicable`, thread_ts: currentThread });
+    const channelInfo = await client.conversations.info({
+        channel: body.channel.id
+    })
+    await client.chat.delete({
+        channel: body.channel.id,
+        ts: body.container.message_ts
+    })
     try {
-        const result = await client.chat.postMessage({
+        await client.chat.postEphemeral({
+            channel: body.channel.id,
+            thread_ts: body.message.thread_ts,
+            text: `Thanks <@${body.user.id}>, your question has been submitted to the instructors
+                    
+Try sending some code snippets using \`\`\` to give us a closer look at your problem, if applicable`,
+            user: body.message.parent_user_id
+        })
+    }catch (error){
+        console.log(error)
+    }
+    try {
+        await client.chat.postMessage({
             channel: "C02KP1PR0UX",
             blocks: [
                 {
@@ -68,11 +78,10 @@ Try sending some code snippets using \`\`\` to give us a closer look at your pro
                         "text": `
 
     Name: ${body.user.username}
-Channel: ${body.channel.name}
-Question:
+Channel: ${channelInfo.channel.name}
 
-    ${currentMessage.text}
-                        `,
+Go to Question:
+https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thread_ts}`
                     },
                     "accessory": {
                     "type": "button",
@@ -87,11 +96,10 @@ Question:
             text: `
 
 Name: ${body.user.username}
-Channel: ${body.channel.name}
-Question:
-    
-    ${currentMessage.text}
-                                `,
+Channel: ${channelInfo.channel.name}
+
+Go to Question: 
+https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thread_ts}`,
         });
     } catch (error) {
         console.error(error);
@@ -101,17 +109,17 @@ Question:
 app.action('resolve_issue', async ({ body, ack, say, client }) => {
     // Acknowledge the action
         await ack();
+        let txt = body.message.text
+        let ts = txt.slice(txt.lastIndexOf('/') + 1, -1)
+        let channelFound = txt.slice(txt.indexOf('/', txt.indexOf('archives') + 'archives'.length)+1, txt.lastIndexOf('/'))
+        
+        await client.reactions.add({
+            channel: channelFound,
+            name: 'white_check_mark',
+            timestamp: ts
+        })
         try{
-            // console.log(body)
-            // let ts = body.message.text.slice(body.message.text.indexOf('amp:')+5, body.message.text.indexOf('Question'))
-            // let channelFound = body.message.text.slice(body.message.text.indexOf(',')+2, body.message.text.indexOf(';'))
-            // console.log(ts, channelFound)
-            // await client.reactions.add({
-            //     channel: channelFound,
-            //     name: 'white_check_mark',
-            //     timestamp: ts
-            // })
-            const result = await client.chat.delete({
+            await client.chat.delete({
                 channel: body.channel.id,
                 ts: body.message.ts
               });
@@ -120,6 +128,7 @@ app.action('resolve_issue', async ({ body, ack, say, client }) => {
             console.log(error)
         }
 });
+
 
 
   
