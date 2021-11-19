@@ -14,30 +14,52 @@ app.event('message', async ({ message, client }) => {
     try {
         // Call chat.scheduleMessage with the built-in client
         if (!message.thread_ts && message.user !== 'U02LS6X1XA4' && message.channel !== 'C02KP1PR0UX' ){
-            const result = await client.chat.postMessage({
-                channel: message.channel,
-                blocks: [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": `Hey there <@${message.user}>! Would you like to submit this question to the queue?`
-                    },
-                    "accessory": {
-                        "type": "button",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "Yes, please submit"
+            if(message.user){
+                const result = await client.chat.postMessage({
+                    channel: message.channel,
+                    "blocks": [
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": `Hey there <@${message.user}> it looks like you are asking a question. Would you like us to add this to the question queue?`
+                            }
                         },
-                        "action_id": "button_click"
-                    }
-                }
-                ],
-                text: `Hey there <@${message.user}>! Would you like to submit this question to the queue?`,
-                user: message.user,
-                thread_ts: message.ts
-            
-            });
+                        {
+                            "type": "actions",
+                            "elements": [
+                                {
+                                    "type": "button",
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Yes, please add to queue"
+                                    },
+                                    "action_id": "yes_button"
+                                },
+                                {
+                                    "type": "button",
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Nah, I'm just chatting"
+                                    },
+                                    "action_id": "no_button"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": "Not sure what the question queue is? *<https://vschooldesign.notion.site/V-School-Question-Queue-Bot-fdbacba99f8d4f4aab5cc75e06b6ba05|Learn more about the queue>*"
+                            }
+                        }
+                    ],
+                    text: `Hey there <@${message.user}> it looks like you are asking a question. Would you like us to add this to the question queue?`,
+                    user: message.user,
+                    thread_ts: message.ts
+                
+                });
+            }
         }
         
     } catch (error) {
@@ -45,7 +67,7 @@ app.event('message', async ({ message, client }) => {
     }
 });
 
-app.action('button_click', async ({ body, ack, say, client }) => {
+app.action('yes_button', async ({ body, ack, say, client }) => {
 // Acknowledge the action
     await ack();
     const channelInfo = await client.conversations.info({
@@ -55,18 +77,6 @@ app.action('button_click', async ({ body, ack, say, client }) => {
         channel: body.channel.id,
         ts: body.container.message_ts
     })
-    try {
-        await client.chat.postEphemeral({
-            channel: body.channel.id,
-            thread_ts: body.message.thread_ts,
-            text: `Thanks <@${body.user.id}>, your question has been submitted to the instructors
-                    
-Try sending some code snippets using \`\`\` to give us a closer look at your problem, if applicable`,
-            user: body.message.parent_user_id
-        })
-    }catch (error){
-        console.log(error)
-    }
     try {
         await client.chat.postMessage({
             channel: "C02KP1PR0UX",
@@ -101,10 +111,102 @@ Channel: ${channelInfo.channel.name}
 Go to Question: 
 https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thread_ts}`,
         });
+
+        const result = await client.conversations.history({
+            channel: 'C02KP1PR0UX'
+        });
+        
+        conversationHistory = result.messages;
+        
     } catch (error) {
         console.error(error);
     }
+    try {
+        await client.chat.postEphemeral({
+            channel: body.channel.id,
+            thread_ts: body.message.thread_ts,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": `Thanks <@${body.user.id}>, your question has been added to the question queue. Our instructors and TA's will respond to the questions in the queue in the order that they are received.\n\nPosition in Queue: ${conversationHistory.length}\n\n---------------------\n\nWhile you are waiting, please provide us with any additional information that could help get us up to speed with your question. \n\nFor example:\n\n• Recordings of the issue \n • code snippets (using \`\`\`) \n • Links to design files, etc.\n\nThese are all helpful in providing us with more context so that we can get you an answer as quickly as possible.`
+                    }
+                },
+                // {
+                //     "type": "actions",
+                //     "elements": [
+                //         {
+                //             "type": "button",
+                //             "text": {
+                //                 "type": "plain_text",
+                //                 "text": "Check Queue Position"
+                //             },
+                //             "action_id": "check_queue"
+                //         }
+                //     ]
+                // }
+            ],
+            text: `Thanks <@${body.user.id}>, your question has been added to the question queue. Our instructors and TA's will respond to the questions in the queue in the order that they are received.\n\nPosition in Queue: ${conversationHistory.length}\n\n---------------------\n\nWhile you are waiting, please provide us with any additional information that could help get us up to speed with your question. \n\nFor example:\n\n• Recordings of the issue \n • code snippets (using \`\`\`) \n • Links to design files, etc.\n\nThese are all helpful in providing us with more context so that we can get you an answer as quickly as possible.`,
+            user: body.message.parent_user_id
+        })
+    }catch (error){
+        console.log(error)
+    }
 });
+
+// app.action('check_queue', async ({body, ack, say, client}) => {
+//     await ack()
+//     try{
+//         const result = await client.conversations.history({
+//             channel: 'C02KP1PR0UX'
+//         });
+        
+//         conversationHistory = result.messages;
+//         console.log(body)
+//         await client.chat.postMessage({
+//             channel: body.channel.id,
+//             thread_ts: body.container.message_ts,
+//             "blocks": [
+//                 {
+//                     "type": "section",
+//                     "text": {
+//                         "type": "mrkdwn",
+//                         "text": `Current Position in Queue: ${conversationHistory.length}\n\n---------------------`
+//                     }
+//                 },
+//                 {
+//                     "type": "actions",
+//                     "elements": [
+//                         {
+//                             "type": "button",
+//                             "text": {
+//                                 "type": "plain_text",
+//                                 "text": "Check Queue Position"
+//                             },
+//                             "action_id": "check_queue"
+//                         }
+//                     ]
+//                 }
+//             ],
+//             text: `Current Position in Queue: ${conversationHistory.length}\n\n---------------------`
+//         })
+//     }catch(error){
+//         console.log(error)
+//     }
+// })
+
+app.action('no_button', async ({body, ack, say, client}) => {
+    try{
+        await client.chat.delete({
+            channel: body.channel.id,
+            ts: body.message.ts
+          });
+    }catch(error){
+        console.log(error)
+    }
+})
+
 
 app.action('resolve_issue', async ({ body, ack, say, client }) => {
     // Acknowledge the action
