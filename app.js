@@ -15,6 +15,10 @@ app.event('message', async ({ message, client }) => {
         // Call chat.scheduleMessage with the built-in client
         if (!message.thread_ts && message.user !== 'U02LS6X1XA4' && message.channel !== 'C02KP1PR0UX' ){
             if(message.user){
+                const channelInfo = await client.conversations.info({
+                    channel: message.channel
+                })
+
                 const result = await client.chat.postMessage({
                     channel: message.channel,
                     "blocks": [
@@ -73,13 +77,14 @@ app.action('yes_button', async ({ body, ack, say, client }) => {
     const channelInfo = await client.conversations.info({
         channel: body.channel.id
     })
+    
     await client.chat.delete({
         channel: body.channel.id,
         ts: body.container.message_ts
     })
     try {
         await client.chat.postMessage({
-            channel: "C02KP1PR0UX",
+            channel: channelInfo.channel.name.includes('dev') ? "C02KP1PR0UX" : "C02NAB1SCEQ",
             blocks: [
                 {
                     "type": "section",
@@ -113,7 +118,7 @@ https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thr
         });
 
         const result = await client.conversations.history({
-            channel: 'C02KP1PR0UX'
+            channel: channelInfo.channel.name.includes('dev') ? "C02KP1PR0UX" : "C02NAB1SCEQ",
         });
         
         conversationHistory = result.messages;
