@@ -44,6 +44,14 @@ app.event('message', async ({ message, client }) => {
                                     "type": "button",
                                     "text": {
                                         "type": "plain_text",
+                                        "text": "Yes, and a video call"
+                                    },
+                                    "action_id": "zoom_button"
+                                },
+                                {
+                                    "type": "button",
+                                    "text": {
+                                        "type": "plain_text",
                                         "text": "Nah, I'm just chatting"
                                     },
                                     "action_id": "no_button"
@@ -71,21 +79,101 @@ app.event('message', async ({ message, client }) => {
     }
 });
 
-app.action('yes_button', async ({ body, ack, say, client }) => {
+app.action('yes_button', async ({ body, ack, client }) => {
 // Acknowledge the action
     await ack();
     const channelInfo = await client.conversations.info({
         channel: body.channel.id
     })
+
+    deleteMessage(client, body)
+
+    let conversationHistory = await sendQueueChannelMessage(body, channelInfo, client)
     
-    await client.chat.delete({
-        channel: body.channel.id,
-        ts: body.container.message_ts
+    sendEphemeral(client, body, conversationHistory)
+});
+
+app.action('zoom_button', async ({ body, ack, client }) => {
+    // Acknowledge the action
+    await ack();
+    
+    const channelInfo = await client.conversations.info({
+        channel: body.channel.id
     })
+
+    deleteMessage(client, body)
+
+    let conversationHistory = await sendQueueChannelMessage(body, channelInfo, client, 'zoom')
+
+    sendEphemeral(client, body, conversationHistory)
+        
+});
+
+app.action('address_issue', async ({body, ack, client}) => {
+    await ack();
+
+    addReaction(body, client, 'eyes')
+    
+    body.message.blocks.push({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": `${body.user.name} is addressing this issue`
+        }
+    })
+    body.message.text += `\n ${body.user.name} is addressing this issue`
+    await client.chat.update({
+        channel:body.channel.id,
+        ts: body.container.message_ts,
+        blocks: body.message.blocks,
+        text: body.message.text
+    })
+})
+
+app.action('instructor_request', async ({body, ack, client}) => {
+    await ack();
+
+    addReaction(body, client, 'eric')
+    body.message.blocks.push({
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": `${body.channel.id == 'C02NAB1SCEQ' ? '<@U01EMTGGADU>' : '<@U0E5W7QJE> <@U01ANMGRJPL>'} Your help is requested with this issue`
+        }
+    })
+    body.message.text += `${body.channel.id == 'C02NAB1SCEQ' ? '<@U01EMTGGADU>' : '<@U0E5W7QJE> <@U01ANMGRJPL>'} Your help is requested with this issue`
+    await client.chat.update({
+        channel:body.channel.id,
+        ts: body.container.message_ts,
+        blocks: body.message.blocks,
+        text: body.message.text
+    })
+})
+
+app.action('no_button', async ({body, ack, client}) => {
+    deleteMessage(client, body)
+})
+
+app.action('resolve_issue', async ({ body, ack, say, client }) => {
+    // Acknowledge the action
+    await ack();
+    let txt = body.message.text
+    let ts = txt.slice(txt.lastIndexOf('/') + 1, txt.indexOf('>'))
+    let channelFound = txt.slice(txt.indexOf('/', txt.indexOf('archives') + 'archives'.length)+1, txt.lastIndexOf('/'))
+    
+    await client.reactions.add({
+        channel: channelFound,
+        name: 'white_check_mark',
+        timestamp: ts
+    })
+    deleteMessage(client, body)
+});
+
+async function sendQueueChannelMessage(body, channelInfo, client, buttonClicked){
     try {
         await client.chat.postMessage({
             channel: channelInfo.channel.name.includes('dev') ? "C02KP1PR0UX" : "C02NAB1SCEQ",
-            blocks: [
+            "blocks": [
                 {
                     "type": "section",
                     "text": {
@@ -95,23 +183,47 @@ app.action('yes_button', async ({ body, ack, say, client }) => {
     Name: ${body.user.username}
 Channel: ${channelInfo.channel.name}
 
+${buttonClicked == 'zoom' ? 'Zoom Call Requested' : ''}
+
 Go to Question:
 https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thread_ts}`
-                    },
-                    "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Mark as Resolved"
-                    },
-                    "action_id": "resolve_issue"
                     }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Mark as Resolved"
+                            },
+                            "action_id": "resolve_issue"
+                        },
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Address Issue"
+                            },
+                            "action_id": "address_issue"
+                        },{
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Request Instructor"
+                        },
+                        "action_id": "instructor_request"
+                    }
+                    ]
                 }
             ],
             text: `
 
 Name: ${body.user.username}
 Channel: ${channelInfo.channel.name}
+
+Zoom Call Requested
 
 Go to Question: 
 https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thread_ts}`,
@@ -121,11 +233,14 @@ https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thr
             channel: channelInfo.channel.name.includes('dev') ? "C02KP1PR0UX" : "C02NAB1SCEQ",
         });
         
-        conversationHistory = result.messages;
+        return result.messages;
         
     } catch (error) {
         console.error(error);
     }
+}
+
+async function sendEphemeral(client, body, conversationHistory){
     try {
         await client.chat.postEphemeral({
             channel: body.channel.id,
@@ -135,110 +250,34 @@ https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thr
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": `Thanks <@${body.user.id}>, your question has been added to the question queue. Our instructors and TA's will respond to the questions in the queue in the order that they are received.\n\nPosition in Queue: ${conversationHistory.length}\n\n---------------------\n\nWhile you are waiting, please provide us with any additional information that could help get us up to speed with your question. \n\nFor example:\n\n• Recordings of the issue \n • code snippets (using \`\`\`) \n • Links to design files, etc.\n\nThese are all helpful in providing us with more context so that we can get you an answer as quickly as possible.`
+                        "text": `Thanks <@${body.user.id}>, your question has been added to the question queue and a video call has been requested. Our instructors and TA's will respond to the questions in the queue in the order that they are received.\n\nPosition in Queue: ${conversationHistory.length}\n\n---------------------\n\nWhile you are waiting, please provide us with any additional information that could help get us up to speed with your question. \n\nFor example:\n\n• Recordings of the issue \n • code snippets (using \`\`\`) \n • Links to design files, etc.\n\nThese are all helpful in providing us with more context so that we can get you an answer as quickly as possible.`
                     }
-                },
-                // {
-                //     "type": "actions",
-                //     "elements": [
-                //         {
-                //             "type": "button",
-                //             "text": {
-                //                 "type": "plain_text",
-                //                 "text": "Check Queue Position"
-                //             },
-                //             "action_id": "check_queue"
-                //         }
-                //     ]
-                // }
+                }
             ],
-            text: `Thanks <@${body.user.id}>, your question has been added to the question queue. Our instructors and TA's will respond to the questions in the queue in the order that they are received.\n\nPosition in Queue: ${conversationHistory.length}\n\n---------------------\n\nWhile you are waiting, please provide us with any additional information that could help get us up to speed with your question. \n\nFor example:\n\n• Recordings of the issue \n • code snippets (using \`\`\`) \n • Links to design files, etc.\n\nThese are all helpful in providing us with more context so that we can get you an answer as quickly as possible.`,
+            text: `Thanks <@${body.user.id}>, your question has been added to the question queue and a video call has been requested. Our instructors and TA's will respond to the questions in the queue in the order that they are received.\n\nPosition in Queue: ${conversationHistory.length}\n\n---------------------\n\nWhile you are waiting, please provide us with any additional information that could help get us up to speed with your question. \n\nFor example:\n\n• Recordings of the issue \n • code snippets (using \`\`\`) \n • Links to design files, etc.\n\nThese are all helpful in providing us with more context so that we can get you an answer as quickly as possible.`,
             user: body.message.parent_user_id
         })
     }catch (error){
         console.log(error)
     }
-});
-
-// app.action('check_queue', async ({body, ack, say, client}) => {
-//     await ack()
-//     try{
-//         const result = await client.conversations.history({
-//             channel: 'C02KP1PR0UX'
-//         });
-        
-//         conversationHistory = result.messages;
-//         console.log(body)
-//         await client.chat.postMessage({
-//             channel: body.channel.id,
-//             thread_ts: body.container.message_ts,
-//             "blocks": [
-//                 {
-//                     "type": "section",
-//                     "text": {
-//                         "type": "mrkdwn",
-//                         "text": `Current Position in Queue: ${conversationHistory.length}\n\n---------------------`
-//                     }
-//                 },
-//                 {
-//                     "type": "actions",
-//                     "elements": [
-//                         {
-//                             "type": "button",
-//                             "text": {
-//                                 "type": "plain_text",
-//                                 "text": "Check Queue Position"
-//                             },
-//                             "action_id": "check_queue"
-//                         }
-//                     ]
-//                 }
-//             ],
-//             text: `Current Position in Queue: ${conversationHistory.length}\n\n---------------------`
-//         })
-//     }catch(error){
-//         console.log(error)
-//     }
-// })
-
-app.action('no_button', async ({body, ack, say, client}) => {
-    try{
-        await client.chat.delete({
-            channel: body.channel.id,
-            ts: body.message.ts
-          });
-    }catch(error){
-        console.log(error)
-    }
-})
-
-
-app.action('resolve_issue', async ({ body, ack, say, client }) => {
-    // Acknowledge the action
-        await ack();
-        let txt = body.message.text
-        let ts = txt.slice(txt.lastIndexOf('/') + 1, -1)
-        let channelFound = txt.slice(txt.indexOf('/', txt.indexOf('archives') + 'archives'.length)+1, txt.lastIndexOf('/'))
-        
-        await client.reactions.add({
-            channel: channelFound,
-            name: 'white_check_mark',
-            timestamp: ts
-        })
-        try{
-            await client.chat.delete({
-                channel: body.channel.id,
-                ts: body.message.ts
-              });
-            
-        }catch(error){
-            console.log(error)
-        }
-});
-
-
-
+}
   
+async function deleteMessage(client, body){
+    await client.chat.delete({
+        channel: body.channel.id,
+        ts: body.container.message_ts
+    })
+}
+
+async function addReaction(body, client, emoji){
+    await client.reactions.add({
+        channel: body.channel.id,
+        name: emoji,
+        timestamp: body.container.message_ts
+    })
+}
+
+
 (async () => {
   // Start your app
   await app.start(process.env.PORT || 3000);
