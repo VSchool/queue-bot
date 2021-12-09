@@ -62,7 +62,7 @@ app.event('message', async ({ message, client }) => {
                             "type": "section",
                             "text": {
                                 "type": "mrkdwn",
-                                "text": "Not sure what the question queue is? *<https://www.notion.so/vschooldesign/How-to-get-help-Question-Queue-fdbacba99f8d4f4aab5cc75e06b6ba05|Learn more about the queue>*"
+                                "text": "Not sure what the question queue is? *<https://www.notion.so/How-to-get-help-Question-Queue-fdbacba99f8d4f4aab5cc75e06b6ba05|Learn more about the queue>*"
                             }
                         }
                     ],
