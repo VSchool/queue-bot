@@ -344,7 +344,7 @@ async function sendQueueChannelMessage(body, channelInfo, client, buttonClicked)
     Name: ${body.user.username}
 Channel: ${channelInfo.channel.name}
 
-${buttonClicked == 'zoom' ? 'Zoom Call Requested' : ''}
+${buttonClicked == 'zoom' ? '🎥 Zoom Call Requested' : ''}
 
 Go to Question:
 https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thread_ts}`
