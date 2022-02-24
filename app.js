@@ -1,5 +1,6 @@
 const { App } = require('@slack/bolt');
 require("dotenv").config()
+const FSJSChannels = ["GT8GCGXS5", "GT8GD1GG1", "GTJ7MNQE8", "GTJLZR2CQ", "GT8GDT4F3", "GT778UPM1"]
 
 // Initializes your app with your bot token and signing secret
 const app = new App({
@@ -71,6 +72,156 @@ app.event('message', async ({ message, client }) => {
                     thread_ts: message.ts
                 
                 });
+                console.log(message.channel)
+                // if(FSJSChannels.includes(message.channel)){
+                if(message.channel === "GTLT5AF4N"){
+                    const result = await client.chat.postMessage({
+                        channel: message.channel,
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "Please provide additional information to help the TA address your question"
+                                }
+                            },
+                            {
+                                "type": "divider"
+                            },
+                            {
+                                "type": "header",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Please use this form to ",
+                                    "emoji": true
+                                }
+                            },
+                            {
+                                "type": "input",
+                                "element": {
+                                    "type": "static_select",
+                                    "placeholder": {
+                                        "type": "plain_text",
+                                        "text": "Select an part",
+                                        "emoji": true
+                                    },
+                                    "options": [
+                                        {
+                                            "text": {
+                                                "type": "plain_text",
+                                                "text": "Part 1: Understanding the problem",
+                                                "emoji": true
+                                            },
+                                            "value": "value-0"
+                                        },
+                                        {
+                                            "text": {
+                                                "type": "plain_text",
+                                                "text": "Part 2: Creating a plan",
+                                                "emoji": true
+                                            },
+                                            "value": "value-1"
+                                        },
+                                        {
+                                            "text": {
+                                                "type": "plain_text",
+                                                "text": "Part 3: Writing the code/syntax question",
+                                                "emoji": true
+                                            },
+                                            "value": "value-2"
+                                        },
+                                        {
+                                            "text": {
+                                                "type": "plain_text",
+                                                "text": "Part 4: Looking back/feedback",
+                                                "emoji": true
+                                            },
+                                            "value": "value-2"
+                                        }
+                                    ],
+                                    "action_id": "static_select-action"
+                                },
+                                "label": {
+                                    "type": "plain_text",
+                                    "text": "Which Part of the Problem Solving Process are you on?",
+                                    "emoji": true
+                                }
+                            },
+                            {
+                                "type": "input",
+                                "element": {
+                                    "type": "plain_text_input",
+                                    "multiline": true,
+                                    "action_id": "plain_text_input-action"
+                                },
+                                "label": {
+                                    "type": "plain_text",
+                                    "text": "Description of question",
+                                    "emoji": true
+                                }
+                            },
+                            {
+                                "type": "input",
+                                "element": {
+                                    "type": "plain_text_input",
+                                    "multiline": true,
+                                    "action_id": "plain_text_input-action"
+                                },
+                                "label": {
+                                    "type": "plain_text",
+                                    "text": "Enter any errors you find in the development console",
+                                    "emoji": true
+                                }
+                            },
+                            {
+                                "type": "input",
+                                "element": {
+                                    "type": "plain_text_input",
+                                    "multiline": true,
+                                    "action_id": "plain_text_input-action"
+                                },
+                                "label": {
+                                    "type": "plain_text",
+                                    "text": "Submit the code in question. The whole file is good!",
+                                    "emoji": true
+                                }
+                            },
+                            {
+                                "type": "input",
+                                "element": {
+                                    "type": "plain_text_input",
+                                    "action_id": "plain_text_input-action"
+                                },
+                                "label": {
+                                    "type": "plain_text",
+                                    "text": "Google search phrase used",
+                                    "emoji": true
+                                }
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "Add text to thread message."
+                                },
+                                "accessory": {
+                                    "type": "button",
+                                    "text": {
+                                        "type": "plain_text",
+                                        "text": "Parse",
+                                        "emoji": true
+                                    },
+                                    "value": "click_me_123",
+                                    "action_id": "parse-button"
+                                }
+                            }
+                        ],
+                        text: `Hey there <@${message.user}> it looks like you are asking a question. Would you like us to add this to the question queue?`,
+                        user: message.user,
+                        thread_ts: message.ts
+                    
+                    });
+                }
             }
         }
         
@@ -91,6 +242,16 @@ app.action('yes_button', async ({ body, ack, client }) => {
     let conversationHistory = await sendQueueChannelMessage(body, channelInfo, client)
     
     sendEphemeral(client, body, conversationHistory)
+});
+
+app.action('parse_button', async ({ body, ack, client }) => {
+// Acknowledge the action
+    await ack();
+    const channelInfo = await client.conversations.info({
+        channel: body.channel.id
+    })
+    console.log(body)
+
 });
 
 app.action('zoom_button', async ({ body, ack, client }) => {
