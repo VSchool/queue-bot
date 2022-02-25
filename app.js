@@ -55,7 +55,7 @@ app.event('message', async ({ message, client }) => {
                                         "type": "plain_text",
                                         "text": "Nah, I'm just chatting"
                                     },
-                                    "action_id": "no_button"
+                                    "action_id": "nah_button"
                                 }
                             ]
                         },
@@ -212,7 +212,7 @@ app.event('message', async ({ message, client }) => {
                                         "emoji": true
                                     },
                                     "value": "click_me_123",
-                                    "action_id": "parse-button"
+                                    "action_id": "submit_more_button"
                                 }
                             }
                         ],
@@ -244,13 +244,13 @@ app.action('yes_button', async ({ body, ack, client }) => {
     sendEphemeral(client, body, conversationHistory)
 });
 
-app.action('parse_button', async ({ body, ack, client }) => {
+app.action('submit_more_button', async ({ body, ack, client }) => {
 // Acknowledge the action
     await ack();
     const channelInfo = await client.conversations.info({
         channel: body.channel.id
     })
-    console.log(body)
+    console.log(channelInfo)
 
 });
 
@@ -311,7 +311,10 @@ app.action('instructor_request', async ({body, ack, client}) => {
     })
 })
 
-app.action('no_button', async ({body, ack, client}) => {
+app.action('nah_button', async ({body, ack, client}) => {
+    await ack();
+    console.log(client.chat)
+    // deleteMessage(client, body.container)
     deleteMessage(client, body)
 })
 
@@ -344,7 +347,7 @@ async function sendQueueChannelMessage(body, channelInfo, client, buttonClicked)
     Name: ${body.user.username}
 Channel: ${channelInfo.channel.name}
 
-${buttonClicked == 'zoom' ? '🎥 Zoom Call Requested' : ''}
+${buttonClicked == 'zoom' ? '> 🎥 **Zoom Call Requested**' : ''}
 
 Go to Question:
 https://v-school.slack.com/archives/${channelInfo.channel.id}/${body.message.thread_ts}`
