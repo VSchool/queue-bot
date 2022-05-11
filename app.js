@@ -241,11 +241,10 @@ const getUserEmail = async (client, userId) => {
     return userEmail;
 };
 
-const sendZapierWebhook = (userEmail) => {
+const sendZapierWebhook = (userEmail, preferredContact) => {
     const date = new Date();
 
-    const formattedDate = `${date.getMonth() + 1}
-    /${date.getDate()}/${date.getFullYear()}`;
+    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 
     const formattedTime = `${date.getHours() % 12 || 12}:${date.getMinutes()}${ date.getHours() >= 12 ? 'pm' : 'am' }`;
 
@@ -255,6 +254,7 @@ const sendZapierWebhook = (userEmail) => {
             email: userEmail,
             date: formattedDate,
             time: formattedTime,
+            preferredContact: preferredContact
         },
     });
 };
@@ -267,7 +267,7 @@ app.action('yes_button', async ({ body, ack, client }) => {
     })
 
     const userEmail = await getUserEmail(client, body.user.id);
-    sendZapierWebhook(userEmail);
+    sendZapierWebhook(userEmail, 'Slack Chat');
 
     deleteMessage(client, body)
 
@@ -295,7 +295,7 @@ app.action('zoom_button', async ({ body, ack, client }) => {
     })
     
     const userEmail = await getUserEmail(client, body.user.id);
-    sendZapierWebhook(userEmail);
+    sendZapierWebhook(userEmail, "Zoom Call");
 
     deleteMessage(client, body)
 
@@ -469,7 +469,7 @@ async function deleteMessage(client, body){
 }
 
 async function addReaction(body, client, emoji){
-    await client.reactions.add({
+    await client.reactions.add({ 
         channel: body.channel.id,
         name: emoji,
         timestamp: body.container.message_ts
