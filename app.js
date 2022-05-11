@@ -250,7 +250,7 @@ const sendZapierWebhook = (userEmail) => {
     const formattedTime = `${date.getHours() % 12 || 12}:${date.getMinutes()}${ date.getHours() >= 12 ? 'pm' : 'am' }`;
 
     console.log(userEmail);
-    axios.post('https://hooks.zapier.com/hooks/catch/666916/bklck9w/', {
+    axios.post(process.env.ZAPIER_WEBHOOK_URL, {
         webhookObject: {
             email: userEmail,
             date: formattedDate,
