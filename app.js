@@ -1,5 +1,6 @@
 const { App } = require('@slack/bolt');
 require("dotenv").config()
+const axios = require('axios')
 const FSJSChannels = ["GT8GCGXS5", "GT8GD1GG1", "GTJ7MNQE8", "GTJLZR2CQ", "GT8GDT4F3", "GT778UPM1"]
 
 // Initializes your app with your bot token and signing secret
@@ -230,12 +231,43 @@ app.event('message', async ({ message, client }) => {
     }
 });
 
+const getUserEmail = async (client, userId) => {
+    const userInfo = await client.users.info({
+        user: userId,
+    });
+
+    const userEmail = userInfo.user.profile.email;
+
+    return userEmail;
+};
+
+const sendZapierWebhook = (userEmail) => {
+    const date = new Date();
+
+    const formattedDate = `${date.getMonth() + 1}
+    /${date.getDate()}/${date.getFullYear()}`;
+
+    const formattedTime = `${date.getHours() % 12 || 12}:${date.getMinutes()}${ date.getHours() >= 12 ? 'pm' : 'am' }`;
+
+    console.log(userEmail);
+    axios.post('https://hooks.zapier.com/hooks/catch/666916/bklck9w/', {
+        webhookObject: {
+            email: userEmail,
+            date: formattedDate,
+            time: formattedTime,
+        },
+    });
+};
+
 app.action('yes_button', async ({ body, ack, client }) => {
 // Acknowledge the action
     await ack();
     const channelInfo = await client.conversations.info({
         channel: body.channel.id
     })
+
+    const userEmail = await getUserEmail(client, body.user.id);
+    sendZapierWebhook(userEmail);
 
     deleteMessage(client, body)
 
@@ -261,6 +293,9 @@ app.action('zoom_button', async ({ body, ack, client }) => {
     const channelInfo = await client.conversations.info({
         channel: body.channel.id
     })
+    
+    const userEmail = await getUserEmail(client, body.user.id);
+    sendZapierWebhook(userEmail);
 
     deleteMessage(client, body)
 
