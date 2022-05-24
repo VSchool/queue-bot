@@ -19,6 +19,7 @@
   "homepage": "https://github.com/VSchool/queue-bot#readme",
   "dependencies": {
     "@slack/bolt": "^3.8.1",
+    "axios": "^0.27.2",
     "dotenv": "^10.0.0"
   }
 }
