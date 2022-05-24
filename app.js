@@ -264,11 +264,13 @@ const sendZapierWebhook = (userEmail, preferredContact) => {
     minute: 'numeric',
   });
 
+  const timeFormatted = time.split(' ').join('');
+
   axios.post(process.env.ZAPIER_WEBHOOK_URL, {
     webhookObject: {
       email: userEmail,
       date: formattedDate,
-      time: time,
+      time: timeFormatted,
       preferredContact: preferredContact,
     },
   });
