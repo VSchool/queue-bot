@@ -256,15 +256,19 @@ const sendZapierWebhook = (userEmail, preferredContact) => {
     date.getMonth() + 1
   }/${date.getDate()}/${date.getFullYear()}`;
 
-  const formattedTime = `${date.getHours() % 12 || 12}:${date.getMinutes()}${
-    date.getHours() >= 12 ? 'pm' : 'am'
-  }`;
+  // convert time to MDT time
+  const time = date.toLocaleTimeString('en-US', {
+    timeZone: 'America/Denver',
+    hour12: true,
+    hour: 'numeric',
+    minute: 'numeric',
+  });
 
   axios.post(process.env.ZAPIER_WEBHOOK_URL, {
     webhookObject: {
       email: userEmail,
       date: formattedDate,
-      time: formattedTime,
+      time: time,
       preferredContact: preferredContact,
     },
   });
