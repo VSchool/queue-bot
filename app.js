@@ -1,14 +1,20 @@
+console.log(process.env.NODE_ENV)
+
 const { App } = require('@slack/bolt');
 require("dotenv").config()
 const FSJSChannels = ["GT8GCGXS5", "GT8GD1GG1", "GTJ7MNQE8", "GTJLZR2CQ", "GT8GDT4F3", "GT778UPM1"]
+const {SLACK_APP_TOKEN, SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET} = require("./config")
 
 // Initializes your app with your bot token and signing secret
 const app = new App({
-    token: process.env.SLACK_BOT_TOKEN,
-    signingSecret: process.env.SLACK_SIGNING_SECRET,
+    token: SLACK_BOT_TOKEN,
+    signingSecret: SLACK_SIGNING_SECRET,
     socketMode: true, // add this
-    appToken: process.env.SLACK_APP_TOKEN // add this
+    appToken: SLACK_APP_TOKEN // add this
 });
+
+// configure evn vars to toggle dev and live ^^
+
 
 app.event('message', async ({ message, client }) => {
     // say() sends a message to the channel where the event was triggered
